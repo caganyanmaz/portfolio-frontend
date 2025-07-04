@@ -1,17 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   // Scroll animation for navbar opacity
   const { scrollY } = useScroll();
   const backgroundColor = useTransform(
     scrollY,
-    [0, window.innerHeight * 0.5], 
+    [0, 400], // Fixed pixel value instead of window.innerHeight
     ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0.95)'] 
   );
 
@@ -25,7 +30,7 @@ export default function Navigation() {
   return (
     <motion.nav 
       className="fixed top-0 left-0 right-0 z-50"
-      style={{ backgroundColor }}
+      style={isMounted ? { backgroundColor } : { backgroundColor: 'rgba(0, 0, 0, 0)' }}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-center h-16">

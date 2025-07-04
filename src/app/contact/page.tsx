@@ -35,7 +35,7 @@ export default function Contact() {
       } else {
         setSubmitStatus('error');
       }
-    } catch (error) {
+    } catch {
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -58,7 +58,7 @@ export default function Contact() {
             Get In Touch
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            I'm always interested in new opportunities, collaborations, or just a friendly chat about technology.
+            I&apos;m always interested in new opportunities, collaborations, or just a friendly chat about technology.
           </p>
         </ScrollAnimation>
       </section>
@@ -70,7 +70,7 @@ export default function Contact() {
             {/* Contact Information */}
             <StaggeredItem>
               <div className="bg-gray-800 rounded-lg p-8">
-                <h2 className="text-2xl font-bold text-white mb-6">Let's Connect</h2>
+                <h2 className="text-2xl font-bold text-white mb-6">Let&apos;s Connect</h2>
                 <div className="space-y-6">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -185,7 +185,7 @@ export default function Contact() {
 
                   {submitStatus === 'success' && (
                     <div className="p-4 bg-green-600/20 border border-green-600 rounded-lg text-green-400">
-                      Message sent successfully! I'll get back to you soon.
+                      Message sent successfully! I&apos;ll get back to you soon.
                     </div>
                   )}
 

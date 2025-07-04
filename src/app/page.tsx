@@ -20,7 +20,7 @@ export default function Home() {
           </ScrollAnimation>
           <ScrollAnimation delay={0.6}>
             <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
-              I'm a second year Computer Science and Mathematics student at University of Oxford, passionate about software engineering, 
+              I&apos;m a second year Computer Science and Mathematics student at University of Oxford, passionate about software engineering, 
               algorithms, and building practical applications. I enjoy solving complex problems and learning 
               new technologies through hands-on projects. Currently focused on web development, data structures, 
               and exploring the intersection of CS and mathematics.
@@ -251,8 +251,8 @@ export default function Home() {
               Ready to Work Together?
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              I'm always interested in new opportunities and exciting projects. 
-              Let's discuss how we can bring your ideas to life.
+              I&apos;m always interested in new opportunities and exciting projects. 
+              Let&apos;s discuss how we can bring your ideas to life.
             </p>
             <Link 
               href="/contact" 

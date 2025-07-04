@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 interface ScrollAnimationProps {
   children: ReactNode;
@@ -18,6 +18,13 @@ export default function ScrollAnimation({
   direction = 'up',
   duration = 0.5,
 }: ScrollAnimationProps) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const getInitialPosition = () => {
     switch (direction) {
       case 'up':
@@ -46,12 +53,18 @@ export default function ScrollAnimation({
     }
   };
 
+  // Don't render animations during SSR
+  if (!isMounted) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}
       initial={getInitialPosition()}
-      whileInView={getAnimatePosition()}
-      viewport={{ once: true, margin: '-100px' }}
+      animate={isVisible ? getAnimatePosition() : getInitialPosition()}
+      onViewportEnter={() => setIsVisible(true)}
+      viewport={{ once: true, margin: '-50px' }}
       transition={{
         duration,
         delay,
@@ -75,12 +88,23 @@ export function StaggeredAnimation({
   staggerDelay?: number;
   delay?: number;
 }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Don't render animations during SSR
+  if (!isMounted) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: '-100px' }}
+      viewport={{ once: true, margin: '-50px' }}
       transition={{
         delayChildren: delay,
         staggerChildren: staggerDelay,

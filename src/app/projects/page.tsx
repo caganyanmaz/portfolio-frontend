@@ -12,7 +12,7 @@ export default function Projects() {
             My Projects
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            A collection of projects I've built to learn new technologies and solve interesting problems.
+            A collection of projects I&apos;ve built to learn new technologies and solve interesting problems.
           </p>
         </ScrollAnimation>
       </section>

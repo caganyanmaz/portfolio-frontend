@@ -157,9 +157,6 @@ The frontend communicates with Strapi through the API layer in `src/lib/`. The m
 
 **Cagan Yanmaz**
 
-- CS & Mathematics Student at University of Oxford
-- GitHub: [@caganyanmaz](https://github.com/caganyanmaz)
-
 ## Links
 
 - [Live Demo](https://your-portfolio-url.com)

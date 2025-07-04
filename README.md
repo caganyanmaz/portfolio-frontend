@@ -169,4 +169,4 @@ The frontend communicates with Strapi through the API layer in `src/lib/`. The m
 
 ---
 
-© 2024 Cagan Yanmaz. All rights reserved.
+© 2025 Cagan Yanmaz. All rights reserved.

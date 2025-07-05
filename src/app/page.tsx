@@ -1,8 +1,40 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import ScrollAnimation from '@/components/ScrollAnimation';
 import { StaggeredAnimation, StaggeredItem } from '@/components/ScrollAnimation';
+import { portfolioApi } from '@/lib/portfolio-api';
+import { processHomePage, getImageUrl } from '@/lib/strapi-utils';
 
-export default function Home() {
+// Utility function to get a random color class
+const getRandomColorClass = (index: number): string => {
+  const colors = [
+    'color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6',
+    'color-7', 'color-8', 'color-9', 'color-10', 'color-11', 'color-12'
+  ];
+  return colors[index % colors.length];
+};
+
+// Utility function to get a random color class for project tags
+const getRandomProjectTagColor = (index: number): string => {
+  const colors = [
+    'color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6',
+    'color-7', 'color-8', 'color-9', 'color-10', 'color-11', 'color-12'
+  ];
+  return colors[index % colors.length];
+};
+
+export default async function Home() {
+  // Single API call to get all data for the main page
+  const homePageData = await portfolioApi.getHomePage();
+
+  // Process the data
+  const homePage = homePageData ? processHomePage(homePageData) : null;
+  console.log(homePage)
+  
+  // Extract data from the single API response
+  const featuredProjects = homePage?.highlightedProjects?.projects || [];
+  const techStacks = homePage?.techStacks || [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
       {/* Hero Section */}
@@ -20,10 +52,7 @@ export default function Home() {
           </ScrollAnimation>
           <ScrollAnimation delay={0.6}>
             <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
-              I&apos;m a second year Computer Science and Mathematics student at University of Oxford, passionate about software engineering, 
-              algorithms, and building practical applications. I enjoy solving complex problems and learning 
-              new technologies through hands-on projects. Currently focused on web development, data structures, 
-              and exploring the intersection of CS and mathematics.
+              {homePage?.introduction || "f"}
             </p>
           </ScrollAnimation>
           <ScrollAnimation delay={0.8}>
@@ -60,86 +89,58 @@ export default function Home() {
         
         <StaggeredAnimation staggerDelay={0.2}>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {/* Project Cards - These will be populated from Strapi */}
-          <StaggeredItem>
-            <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
-              <div className="h-48 bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
-                <span className="text-gray-500">Project Image</span>
+            {featuredProjects.length > 0 ? (
+              featuredProjects.map((project, index) => (
+                <StaggeredItem key={project.id}>
+                  <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
+                    <div className="h-48 bg-gray-700 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+                      {project.thumbnail ? (
+                        <Image
+                          src={getImageUrl(project.thumbnail)}
+                          alt={project.thumbnail.alternativeText || project.title}
+                          width={400}
+                          height={200}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-gray-500">No Image</span>
+                      )}
+                    </div>
+                    <h3 className="text-xl font-semibold text-white mb-2">{project.title}</h3>
+                    <p className="text-gray-400 mb-4 overflow-hidden text-ellipsis" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                      {project.description}
+                    </p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {project.tags?.slice(0, 3).map((tag, tagIndex) => (
+                        <span 
+                          key={tag.id} 
+                          className={`project-tag ${getRandomProjectTagColor(tagIndex)} px-2 py-1 rounded text-sm font-medium`}
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-4">
+                      {project.demoLink && (
+                        <Link href={project.demoLink} className="text-blue-400 hover:text-blue-300 text-sm" target="_blank" rel="noopener noreferrer">
+                          View Project →
+                        </Link>
+                      )}
+                      {project.sourceLink && (
+                        <Link href={project.sourceLink} className="text-gray-400 hover:text-gray-300 text-sm" target="_blank" rel="noopener noreferrer">
+                          GitHub →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </StaggeredItem>
+              ))
+            ) : (
+              <div className="col-span-full text-center text-gray-400">
+                No projects available at the moment.
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">CPU Neural Network</h3>
-              <p className="text-gray-400 mb-4">
-                A neural network implementation from scratch using only CPU computations. Built to understand 
-                the mathematical foundations of machine learning algorithms.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm">Python</span>
-                <span className="bg-green-600 text-white px-2 py-1 rounded text-sm">NumPy</span>
-                <span className="bg-purple-600 text-white px-2 py-1 rounded text-sm">Machine Learning</span>
-              </div>
-              <div className="flex gap-4">
-                <Link href="https://github.com/caganyanmaz/cpu-neural-network" className="text-blue-400 hover:text-blue-300 text-sm">
-                  View Project →
-                </Link>
-                <Link href="https://github.com/caganyanmaz/cpu-neural-network" className="text-gray-400 hover:text-gray-300 text-sm">
-                  GitHub →
-                </Link>
-              </div>
-            </div>
-          </StaggeredItem>
-
-          <StaggeredItem>
-            <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
-              <div className="h-48 bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
-                <span className="text-gray-500">Project Image</span>
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Minesweeper Bot</h3>
-              <p className="text-gray-400 mb-4">
-                An AI-powered bot that automatically solves Minesweeper puzzles using probability algorithms 
-                and logical deduction. Demonstrates algorithmic problem-solving skills.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm">Python</span>
-                <span className="bg-green-600 text-white px-2 py-1 rounded text-sm">Selenium</span>
-                <span className="bg-purple-600 text-white px-2 py-1 rounded text-sm">Algorithms</span>
-              </div>
-              <div className="flex gap-4">
-                <Link href="https://github.com/caganyanmaz/minesweeper-bot" className="text-blue-400 hover:text-blue-300 text-sm">
-                  View Project →
-                </Link>
-                <Link href="https://github.com/caganyanmaz/minesweeper-bot" className="text-gray-400 hover:text-gray-300 text-sm">
-                  GitHub →
-                </Link>
-              </div>
-            </div>
-          </StaggeredItem>
-
-          <StaggeredItem>
-            <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
-              <div className="h-48 bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
-                <span className="text-gray-500">Project Image</span>
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Text Editor</h3>
-              <p className="text-gray-400 mb-4">
-                A feature-rich text editor built with modern web technologies. Includes syntax highlighting, 
-                file management, and a clean, intuitive interface for code editing.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm">JavaScript</span>
-                <span className="bg-green-600 text-white px-2 py-1 rounded text-sm">HTML/CSS</span>
-                <span className="bg-purple-600 text-white px-2 py-1 rounded text-sm">Web APIs</span>
-              </div>
-              <div className="flex gap-4">
-                <Link href="https://github.com/caganyanmaz/text-editor" className="text-blue-400 hover:text-blue-300 text-sm">
-                  View Project →
-                </Link>
-                <Link href="https://github.com/caganyanmaz/text-editor" className="text-gray-400 hover:text-gray-300 text-sm">
-                  GitHub →
-                </Link>
-              </div>
-            </div>
-          </StaggeredItem>
-        </div>
-
+            )}
+          </div>
         </StaggeredAnimation>
         
         <ScrollAnimation>
@@ -172,74 +173,109 @@ export default function Home() {
 
         <StaggeredAnimation staggerDelay={0.1}>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          <StaggeredItem>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-white mb-4">Programming Languages</h3>
-              <div className="space-y-2">
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Python</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-yellow-500 hover:to-orange-500 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">JavaScript</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-red-600 hover:to-pink-600 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Java</span>
-                </div>
-              </div>
-            </div>
-          </StaggeredItem>
+            {techStacks && techStacks.length > 0 ? (
+              techStacks.map((techStack, index) => (
+                <StaggeredItem key={techStack.id}>
+                  <div className="text-center group">
+                    <h3 className="text-xl font-semibold text-white mb-4 transition-all duration-300 group-hover:text-blue-400">
+                      {techStack.name}
+                    </h3>
+                    <div className="space-y-2">
+                      {techStack.tags && techStack.tags.length > 0 ? (
+                        techStack.tags.map((tag, tagIndex) => (
+                          <div 
+                            key={tag.id} 
+                            className={`tech-stack-item ${getRandomColorClass(tagIndex)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`}
+                            style={{
+                              animationDelay: `${(index * 0.1) + (tagIndex * 0.05)}s`,
+                              animationFillMode: 'both'
+                            }}
+                          >
+                            <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">
+                              {tag.name}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-gray-500 text-sm">No tags available</div>
+                      )}
+                    </div>
+                  </div>
+                </StaggeredItem>
+              ))
+            ) : (
+              // Fallback to hardcoded skills if no tech stacks are available
+              <>
+                <StaggeredItem>
+                  <div className="text-center group">
+                    <h3 className="text-xl font-semibold text-white mb-4 transition-all duration-300 group-hover:text-blue-400">Programming Languages</h3>
+                    <div className="space-y-2">
+                      <div className={`tech-stack-item ${getRandomColorClass(0)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Python</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(1)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.15s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">JavaScript</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(2)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Java</span>
+                      </div>
+                    </div>
+                  </div>
+                </StaggeredItem>
 
-          <StaggeredItem>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-white mb-4">Web Development</h3>
-              <div className="space-y-2">
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-orange-500 hover:to-red-500 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Django</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-cyan-500 hover:to-blue-500 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">React</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-purple-600 hover:to-indigo-600 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">MongoDB</span>
-                </div>
-              </div>
-            </div>
-          </StaggeredItem>
+                <StaggeredItem>
+                  <div className="text-center group">
+                    <h3 className="text-xl font-semibold text-white mb-4 transition-all duration-300 group-hover:text-blue-400">Web Development</h3>
+                    <div className="space-y-2">
+                      <div className={`tech-stack-item ${getRandomColorClass(3)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.25s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Django</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(4)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">React</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(5)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.35s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">MongoDB</span>
+                      </div>
+                    </div>
+                  </div>
+                </StaggeredItem>
 
-          <StaggeredItem>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-white mb-4">Data Science</h3>
-              <div className="space-y-2">
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-green-500 hover:to-emerald-500 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">NumPy</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-teal-500 hover:to-cyan-500 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Pandas</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-violet-600 hover:to-purple-600 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Machine Learning</span>
-                </div>
-              </div>
-            </div>
-          </StaggeredItem>
+                <StaggeredItem>
+                  <div className="text-center group">
+                    <h3 className="text-xl font-semibold text-white mb-4 transition-all duration-300 group-hover:text-blue-400">Data Science</h3>
+                    <div className="space-y-2">
+                      <div className={`tech-stack-item ${getRandomColorClass(6)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.4s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">NumPy</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(7)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.45s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Pandas</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(8)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.5s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Machine Learning</span>
+                      </div>
+                    </div>
+                  </div>
+                </StaggeredItem>
 
-          <StaggeredItem>
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-white mb-4">Tools</h3>
-              <div className="space-y-2">
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-orange-600 hover:to-red-600 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Git</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-500 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Docker</span>
-                </div>
-                <div className="bg-gray-800 hover:bg-gradient-to-r hover:from-yellow-500 hover:to-orange-500 rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default">
-                  <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none">Linux</span>
-                </div>
-              </div>
-            </div>
-          </StaggeredItem>
-        </div>
+                <StaggeredItem>
+                  <div className="text-center group">
+                    <h3 className="text-xl font-semibold text-white mb-4 transition-all duration-300 group-hover:text-blue-400">Tools</h3>
+                    <div className="space-y-2">
+                      <div className={`tech-stack-item ${getRandomColorClass(9)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.55s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Git</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(10)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.6s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Docker</span>
+                      </div>
+                      <div className={`tech-stack-item ${getRandomColorClass(11)} rounded-lg p-3 transition-all duration-500 ease-in-out transform hover:scale-105 cursor-default animate-fade-in-up hover:animate-pulse-glow`} style={{ animationDelay: '0.65s', animationFillMode: 'both' }}>
+                        <span className="text-gray-300 hover:text-white transition-colors duration-300 select-none font-medium">Linux</span>
+                      </div>
+                    </div>
+                  </div>
+                </StaggeredItem>
+              </>
+            )}
+          </div>
         </StaggeredAnimation>
       </section>
 

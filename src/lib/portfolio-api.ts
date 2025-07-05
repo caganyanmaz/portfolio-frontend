@@ -1,71 +1,43 @@
 import { api } from './api';
-import type { Project, Skill, Experience, Education, PersonalInfo } from '@/types/strapi';
+import type { Project, Tag, HomePage, TechStack, HighlightedProjects } from '@/types/strapi';
 
 // Portfolio-specific API functions
 export const portfolioApi = {
-  // Personal Information
-  getPersonalInfo: async (): Promise<PersonalInfo | null> => {
-    return await api.getById<PersonalInfo>('personal-info', 1);
+  // HomePage (Single Type) - Single API call with all relations
+  getHomePage: async (): Promise<HomePage | null> => {
+    try {
+      const response = await api.getSingle<HomePage>(
+        "/home-page?populate[HighlightedProjects][populate][projects][populate][0]=tags&populate[TechStacks][populate][0]=tags");
+      return response
+    } catch (error) {
+      console.error('Error fetching home page:', error);
+      return null;
+    }
   },
 
   // Projects
   getAllProjects: async (): Promise<Project[]> => {
-    return await api.getAll<Project>('projects?sort=order:asc');
-  },
-
-  getFeaturedProjects: async (): Promise<Project[]> => {
-    return await api.getWithFilters<Project>('projects', {
-      'filters[featured][$eq]': true,
-      'sort': 'order:asc'
-    });
+    return await api.getMany<Project>('projects?populate=*');
   },
 
   getProjectById: async (id: string | number): Promise<Project | null> => {
     return await api.getById<Project>('projects', id);
   },
 
-  // Skills
-  getAllSkills: async (): Promise<Skill[]> => {
-    return await api.getAll<Skill>('skills?sort=order:asc');
-  },
-
-  getSkillsByCategory: async (category: Skill['category']): Promise<Skill[]> => {
-    return await api.getWithFilters<Skill>('skills', {
-      'filters[category][$eq]': category,
-      'sort': 'order:asc'
+  getProjectsByTag: async (tagId: string | number): Promise<Project[]> => {
+    return await api.getWithFilters<Project>('projects', {
+      'filters[tags][id][$eq]': tagId,
+      'populate': '*'
     });
   },
 
-  // Experience
-  getAllExperience: async (): Promise<Experience[]> => {
-    return await api.getAll<Experience>('experiences?sort=order:desc');
+  // Tags
+  getAllTags: async (): Promise<Tag[]> => {
+    return await api.getMany<Tag>('tags?pagination[limit]=100');
   },
 
-  getCurrentExperience: async (): Promise<Experience[]> => {
-    return await api.getWithFilters<Experience>('experiences', {
-      'filters[current][$eq]': true,
-      'sort': 'order:desc'
-    });
+  getTagById: async (id: string | number): Promise<Tag | null> => {
+    return await api.getById<Tag>('tags', id);
   },
 
-  // Education
-  getAllEducation: async (): Promise<Education[]> => {
-    return await api.getAll<Education>('education?sort=order:desc');
-  },
-
-  // Contact form submission
-  submitContactForm: async (data: {
-    name: string;
-    email: string;
-    subject: string;
-    message: string;
-  }): Promise<boolean> => {
-    try {
-      await api.post('contact-messages', { data });
-      return true;
-    } catch (error) {
-      console.error('Error submitting contact form:', error);
-      return false;
-    }
-  },
 }; 

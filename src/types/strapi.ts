@@ -24,90 +24,58 @@ export interface Project {
   id: number;
   title: string;
   description: string;
-  shortDescription?: string;
-  image?: {
+  thumbnail?: {
     url: string;
     alternativeText?: string;
   };
-  technologies: string[];
-  githubUrl?: string;
-  liveUrl?: string;
-  featured: boolean;
-  order: number;
+  sourceLink?: string;
+  demoLink?: string;
+  tags?: SimpleTag[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface Skill {
+export interface Tag {
   id: number;
   name: string;
-  category: 'frontend' | 'backend' | 'database' | 'devops' | 'other';
-  proficiency: number; // 1-100
-  icon?: string;
-  order: number;
-}
-
-export interface Experience {
-  id: number;
-  title: string;
-  company: string;
-  location?: string;
-  startDate: string;
-  endDate?: string;
-  current: boolean;
-  description: string;
-  technologies: string[];
-  order: number;
-}
-
-export interface Education {
-  id: number;
-  degree: string;
-  institution: string;
-  field: string;
-  startDate: string;
-  endDate?: string;
-  current: boolean;
-  description?: string;
-  gpa?: number;
-  order: number;
-}
-
-export interface PersonalInfo {
-  id: number;
-  name: string;
-  title: string;
-  email: string;
-  phone?: string;
-  location?: string;
-  bio: string;
-  shortBio: string;
-  avatar?: {
-    url: string;
-    alternativeText?: string;
-  };
-  socialLinks: {
-    github?: string;
-    linkedin?: string;
-    twitter?: string;
-    website?: string;
-  };
-  resumeUrl?: string;
-}
-
-export interface ContactMessage {
-  id: number;
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
+  projects?: Project[];
   createdAt: string;
+  updatedAt: string;
 }
+
+export interface SimpleTag {
+  id: number;
+  name: string;
+}
+
+export interface HighlightedProjects {
+  id: number;
+  projects?: Project[];
+}
+
+export interface TechStack {
+  id: number;
+  name: string;
+  tags?: Tag[];
+}
+
+export interface HomePage {
+  id: number;
+  introduction: string;
+  highlightedProjects?: HighlightedProjects;
+  projects?: Project[];
+  techStacks?: TechStack[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+
 
 // API response types
 export type ProjectsResponse = StrapiResponse<StrapiEntity[]>;
 export type ProjectResponse = StrapiResponse<StrapiEntity>;
-export type SkillsResponse = StrapiResponse<StrapiEntity[]>;
-export type ExperienceResponse = StrapiResponse<StrapiEntity[]>;
-export type EducationResponse = StrapiResponse<StrapiEntity[]>;
-export type PersonalInfoResponse = StrapiResponse<StrapiEntity>; 
+export type TagsResponse = StrapiResponse<StrapiEntity[]>;
+export type TagResponse = StrapiResponse<StrapiEntity>;
+export type HomePageResponse = StrapiResponse<StrapiEntity>;
+export type TechStackResponse = StrapiResponse<StrapiEntity>;
+export type HighlightedProjectsResponse = StrapiResponse<StrapiEntity>; 

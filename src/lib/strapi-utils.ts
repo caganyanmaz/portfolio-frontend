@@ -1,4 +1,4 @@
-import type { Project, Tag, HomePage, TechStack, HighlightedProjects, SimpleTag } from '@/types/strapi';
+import type { Project, Tag, HomePage, TechStack, SimpleTag } from '@/types/strapi';
 
 // Helper function to get image URL from Strapi media object
 export const getImageUrl = (media: any, size: 'thumbnail' | 'small' | 'medium' | 'large' = 'medium'): string => {
@@ -28,39 +28,34 @@ export const getImageUrl = (media: any, size: 'thumbnail' | 'small' | 'medium' |
 // Helper function to extract and process Strapi relations
 export const processRelations = (data: any): any => {
   if (!data) return data;
-  
-  // Handle arrays
+
+  // Handle arrays of relations directly
   if (Array.isArray(data)) {
     return data.map(item => processRelations(item));
   }
-  
-  // Handle objects
+
+  // If wrapped in a Strapi { data: ... } object, unwrap it
+  if (typeof data === 'object' && 'data' in data && Object.keys(data).length === 1) {
+    return processRelations((data as any).data);
+  }
+
+  // Handle Strapi entity objects with id and attributes
+  if (typeof data === 'object' && 'id' in data && 'attributes' in data) {
+    return {
+      id: (data as any).id,
+      ...processRelations((data as any).attributes)
+    };
+  }
+
+  // Handle generic objects
   if (typeof data === 'object') {
     const processed: any = {};
-    
     for (const [key, value] of Object.entries(data)) {
-      if (key === 'data' && Array.isArray(value)) {
-        // Handle many-to-many relations
-        processed[key.replace('data', '')] = value.map((item: any) => ({
-          id: (item as any).id,
-          ...(item as any).attributes
-        }));
-      } else if (key === 'data' && value && typeof value === 'object' && (value as any).id) {
-        // Handle one-to-many relations
-        processed[key.replace('data', '')] = {
-          id: (value as any).id,
-          ...(value as any).attributes
-        };
-      } else if (typeof value === 'object' && value !== null) {
-        processed[key] = processRelations(value);
-      } else {
-        processed[key] = value;
-      }
+      processed[key] = typeof value === 'object' && value !== null ? processRelations(value) : value;
     }
-    
     return processed;
   }
-  
+
   return data;
 };
 
@@ -81,7 +76,11 @@ export const processProjects = (projects: any[]): Project[] => {
       } : undefined,
       sourceLink: project.SourceLink || '',
       demoLink: project.DemoLink || '',
-      tags: project.tags ? processRelations(project.tags).map(processSimpleTag) : [],
+      // Strapi nests relations under a `data` key
+      tags: (() => {
+        const processed = processRelations(project.tags?.data);
+        return Array.isArray(processed) ? processed.map(processSimpleTag) : [];
+      })(),
       createdAt: project.createdAt || new Date().toISOString(),
       updatedAt: project.updatedAt || new Date().toISOString()
     };
@@ -106,7 +105,7 @@ export const processTags = (tags: any[]): Tag[] => {
     return {
       id: tag.id || 0,
       name: tag.Name || '',
-      projects: tag.Projects ? processRelations(tag.Projects) : [],
+      projects: processRelations(tag.Projects?.data) || [],
       createdAt: tag.CreatedAt || new Date().toISOString(),
       updatedAt: tag.UpdatedAt || new Date().toISOString()
     };

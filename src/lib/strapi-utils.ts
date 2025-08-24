@@ -28,39 +28,38 @@ export const getImageUrl = (media: any, size: 'thumbnail' | 'small' | 'medium' |
 // Helper function to extract and process Strapi relations
 export const processRelations = (data: any): any => {
   if (!data) return data;
-  
-  // Handle arrays
+
+  // Directly handle arrays
   if (Array.isArray(data)) {
     return data.map(item => processRelations(item));
   }
-  
+
   // Handle objects
   if (typeof data === 'object') {
-    const processed: any = {};
-    
-    for (const [key, value] of Object.entries(data)) {
-      if (key === 'data' && Array.isArray(value)) {
-        // Handle many-to-many relations
-        processed[key.replace('data', '')] = value.map((item: any) => ({
-          id: (item as any).id,
-          ...(item as any).attributes
-        }));
-      } else if (key === 'data' && value && typeof value === 'object' && (value as any).id) {
-        // Handle one-to-many relations
-        processed[key.replace('data', '')] = {
-          id: (value as any).id,
-          ...(value as any).attributes
-        };
-      } else if (typeof value === 'object' && value !== null) {
-        processed[key] = processRelations(value);
-      } else {
-        processed[key] = value;
+    // Strapi relation wrapper { data: [...] } or { data: { ... } }
+    if ('data' in data) {
+      const value: any = (data as any).data;
+      if (Array.isArray(value)) {
+        return value.map((item: any) => processRelations(item));
+      }
+      if (value && typeof value === 'object') {
+        return processRelations(value);
       }
     }
-    
+
+    // Flatten attribute objects { id, attributes: {...} }
+    if ('attributes' in data && (data as any).attributes) {
+      const { id, attributes } = data as any;
+      return { id, ...processRelations(attributes) };
+    }
+
+    const processed: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      processed[key] = processRelations(value);
+    }
     return processed;
   }
-  
+
   return data;
 };
 

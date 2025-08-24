@@ -161,8 +161,7 @@ The frontend communicates with Strapi through the API layer in `src/lib/`. The m
 
 - [Live Demo](https://your-portfolio-url.com)
 - [Backend Repository](https://github.com/your-username/portfolio-backend)
-- [Strapi Documentation
-  ](https://docs.strapi.io/)
+- [Strapi Documentation](https://docs.strapi.io/)
 
 ---
 

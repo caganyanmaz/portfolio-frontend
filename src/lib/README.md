@@ -24,10 +24,9 @@ Portfolio-specific API functions for fetching data from your content types.
 ### `strapi-utils.ts`
 
 Utility functions for processing and transforming Strapi data.
+### Hooks (planned)
 
-### `hooks/useStrapiData.ts`
-
-React hooks for fetching data with loading states and error handling.
+TODO: React hooks for Strapi data fetching will live in `src/lib/hooks` once implemented.
 
 ### `types/strapi.ts`
 
@@ -89,27 +88,9 @@ const projectsByTag = await portfolioApi.getProjectsByTag(tagId);
 const tags = await portfolioApi.getAllTags();
 ```
 
-### Using React hooks
+### Using React hooks (planned)
 
-```typescript
-import { useHomePage, useProjects, useTags } from '@/lib/hooks/useStrapiData';
-
-function MyComponent() {
-  const { data: homePage, loading, error } = useHomePage();
-  const { data: projects } = useProjects();
-  const { data: tags } = useTags();
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  return (
-    <div>
-      <h1>{homePage?.introduction}</h1>
-      {/* Render your data */}
-    </div>
-  );
-}
-```
+TODO: Add examples for React hooks once they are implemented.
 
 ### Using utility functions
 

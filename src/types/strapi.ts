@@ -48,11 +48,6 @@ export interface SimpleTag {
   name: string;
 }
 
-export interface HighlightedProjects {
-  id: number;
-  projects?: Project[];
-}
-
 export interface TechStack {
   id: number;
   name: string;
@@ -62,7 +57,7 @@ export interface TechStack {
 export interface HomePage {
   id: number;
   introduction: string;
-  highlightedProjects?: HighlightedProjects;
+  HighlightedProjects?: Project[];
   projects?: Project[];
   techStacks?: TechStack[];
   createdAt: string;

@@ -1,106 +1,136 @@
-import axios from 'axios';
+// /src/lib/api.ts
+import 'server-only';
+import axios, { AxiosError, isAxiosError } from 'axios';
+import qs from 'qs';
 
-// Strapi API configuration - server-side only
-const STRAPI_URL = process.env.STRAPI_HOST_ADDRESS || 'http://localhost:1337';
+/** --------- HARD SERVER GUARD --------- */
+if (typeof window !== 'undefined') {
+  throw new Error('Do not import src/lib/api.ts in client/browser code.');
+}
+
+/** --------- CONFIG --------- */
+const STRAPI_URL = (process.env.STRAPI_HOST_ADDRESS || 'http://localhost:1337').replace(/\/$/, '');
 const API_TOKEN = process.env.STRAPI_TOKEN;
 
-// Debug logging
-console.log('Strapi Configuration:');
-console.log('STRAPI_HOST_ADDRESS:', process.env.STRAPI_HOST_ADDRESS);
-console.log('Using STRAPI_URL:', STRAPI_URL);
-console.log('API_TOKEN exists:', !!API_TOKEN);
+if (process.env.NODE_ENV !== 'production') {
+  // eslint-disable-next-line no-console
+  console.log('[Strapi] URL:', STRAPI_URL, 'Token?', Boolean(API_TOKEN));
+}
 
-// Create axios instance for Strapi API
+/** --------- AXIOS INSTANCE (Strapi v4) --------- */
 export const strapiApi = axios.create({
   baseURL: `${STRAPI_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
-    ...(API_TOKEN && { Authorization: `Bearer ${API_TOKEN}` }),
+    ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
   },
-  // Add timeout
-  timeout: 10000,
+  timeout: 10_000,
+  paramsSerializer: (params) => qs.stringify(params, { encodeValuesOnly: true }),
 });
 
-// Helper function to extract data from Strapi response
-export const extractStrapiData = <T>(response: any): T => {
-  return response.data?.data || response.data;
+/** --------- TYPES & HELPERS --------- */
+export type StrapiQuery = {
+  filters?: Record<string, any>;
+  populate?: any;
+  sort?: string | string[];
+  fields?: string[];
+  pagination?: { page?: number; pageSize?: number; start?: number; limit?: number; withCount?: boolean };
+  publicationState?: 'live' | 'preview';
+  locale?: string;
 };
 
-// Helper function to extract attributes from Strapi response
-export const extractStrapiAttributes = <T>(response: any): T => {
-  const data = extractStrapiData(response);
-  if (Array.isArray(data)) {
-    return data.map(item => item.attributes) as T;
+export type WithId<T> = T & { id: number };
+
+const flatten = <T>(item: any): WithId<T> => {
+  if (!item) return { id: 0 } as WithId<T>;
+  if (typeof item === 'object' && 'attributes' in item) {
+    return { id: item.id, ...(item.attributes || {}) } as WithId<T>;
   }
-  return ((data as any).attributes as T);
+  return item as WithId<T>;
 };
 
-// Common API functions
+const extractOne = <T>(res: any): WithId<T> | null => {
+  const data = res?.data?.data ?? res?.data;
+  if (!data) return null;
+  return flatten<T>(data);
+};
+
+const extractMany = <T>(res: any): Array<WithId<T>> => {
+  const data = res?.data?.data ?? res?.data;
+  if (!Array.isArray(data)) return [];
+  return data.map((x: any) => flatten<T>(x));
+};
+
+function logAxiosError(context: string, err: unknown) {
+  if (isAxiosError(err)) {
+    const e = err as AxiosError<any>;
+    const payload = {
+      message: e.message,
+      name: e.name,
+      code: e.code ?? null,
+      status: e.response?.status ?? null,
+      data: e.response?.data ?? null,
+      request: {
+        url: `${e.config?.baseURL ?? ''}${e.config?.url ?? ''}`,
+        method: e.config?.method ?? null,
+        params: e.config?.params ?? null,
+        authHeader: Boolean(e.config?.headers && 'Authorization' in (e.config!.headers as any)),
+      },
+    };
+    // Force JSON so Next doesn’t drop undefined props
+    // eslint-disable-next-line no-console
+    console.error(`[Strapi] ${context} failed -> ${JSON.stringify(payload, null, 2)}`);
+  } else {
+    // eslint-disable-next-line no-console
+    console.error(`[Strapi] ${context} failed (non-Axios):`, err);
+  }
+}
+
+/** --------- PUBLIC API --------- */
 export const api = {
-  // Get all items of a content type
-  getMany: async <T>(endpoint: string): Promise<T[]> => {
+  /** GET a collection endpoint (array) */
+  async getList<T>(endpoint: string, params?: StrapiQuery): Promise<Array<WithId<T>>> {
     try {
-      console.log(`Fetching: ${strapiApi.defaults.baseURL}/${endpoint}`);
-      const response = await strapiApi.get(endpoint);
-      return response.data.data;
-    } catch (error: any) {
-      console.error(`Error fetching ${endpoint}:`, error);
-      console.error('Error details:', {
-        message: error?.message || 'Unknown error',
-        code: error?.code || 'Unknown code',
-        config: {
-          baseURL: strapiApi.defaults.baseURL,
-          url: endpoint
-        }
-      });
-      return [];
-    }
-  },
-  getSingle: async <T>(endpoint: string): Promise<T | null> => {
-    try {
-      const response = await strapiApi.get(endpoint);
-      return response.data.data as T;
-    } catch (error) {
-      console.error(`Error fetching ${endpoint}:`, error);
-      return null;
-    }
-  },
-
-  // Get a single item by ID
-  getById: async <T>(endpoint: string, id: string | number): Promise<T | null> => {
-    try {
-      const response = await strapiApi.get(`${endpoint}/${id}`);
-      return extractStrapiAttributes<T>(response);
-    } catch (error) {
-      console.error(`Error fetching ${endpoint}/${id}:`, error);
-      return null;
-    }
-  },
-
-  // Get items with filters
-  getWithFilters: async <T>(endpoint: string, filters: Record<string, any>): Promise<T[]> => {
-    try {
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        params.append(key, value);
-      });
-      
-      const response = await strapiApi.get(`${endpoint}?${params.toString()}`);
-      return extractStrapiAttributes<T[]>(response);
-    } catch (error) {
-      console.error(`Error fetching ${endpoint} with filters:`, error);
+      const res = await strapiApi.get(endpoint, { params });
+      return extractMany<T>(res);
+    } catch (e) {
+      logAxiosError(`getList ${endpoint}`, e);
       return [];
     }
   },
 
-  // Post data to create new items
-  post: async <T>(endpoint: string, data: any): Promise<T | null> => {
+  /** GET a single type endpoint (object) */
+  async getSingle<T>(endpoint: string, params?: StrapiQuery): Promise<WithId<T> | null> {
     try {
-      const response = await strapiApi.post(endpoint, data);
-      return extractStrapiAttributes<T>(response);
-    } catch (error) {
-      console.error(`Error posting to ${endpoint}:`, error);
+      const res = await strapiApi.get(endpoint, { params });
+      return extractOne<T>(res);
+    } catch (e) {
+      logAxiosError(`getSingle ${endpoint}`, e);
       return null;
     }
   },
-}; 
+
+  /** GET by id from a collection */
+  async getById<T>(endpoint: string, id: string | number, params?: StrapiQuery): Promise<WithId<T> | null> {
+    try {
+      const res = await strapiApi.get(`${endpoint}/${id}`, { params });
+      return extractOne<T>(res);
+    } catch (e) {
+      logAxiosError(`getById ${endpoint}/${id}`, e);
+      return null;
+    }
+  },
+
+  /** POST (create) */
+  async post<T>(endpoint: string, data: any, params?: StrapiQuery): Promise<WithId<T> | null> {
+    try {
+      const res = await strapiApi.post(endpoint, data, { params });
+      return extractOne<T>(res);
+    } catch (e) {
+      logAxiosError(`post ${endpoint}`, e);
+      return null;
+    }
+  },
+};
+
+export const STRAPI_BASE_URL = STRAPI_URL;

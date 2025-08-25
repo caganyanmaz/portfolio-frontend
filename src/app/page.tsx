@@ -1,39 +1,37 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import ScrollAnimation from '@/components/ScrollAnimation';
-import { StaggeredAnimation, StaggeredItem } from '@/components/ScrollAnimation';
+import ScrollAnimation, { StaggeredAnimation, StaggeredItem } from '@/components/ScrollAnimation';
 import { portfolioApi } from '@/lib/portfolio-api';
 import { processHomePage, getImageUrl } from '@/lib/strapi-utils';
+import { unstable_cache as cache } from 'next/cache';
 
-// Utility function to get a random color class
+export const revalidate = 60;
+
+// Cached loader (tagged for revalidation)
+const getHomePageCached = cache(
+  async () => {
+    const raw = await portfolioApi.getHomePage();
+    return raw ? processHomePage(raw) : null;
+  },
+  ['home-page'],
+  { tags: ['home', 'projects'] }
+);
+
 const getRandomColorClass = (index: number): string => {
   const colors = [
-    'color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6',
-    'color-7', 'color-8', 'color-9', 'color-10', 'color-11', 'color-12'
+    'color-1','color-2','color-3','color-4','color-5','color-6',
+    'color-7','color-8','color-9','color-10','color-11','color-12'
   ];
   return colors[index % colors.length];
 };
-
-// Utility function to get a random color class for project tags
-const getRandomProjectTagColor = (index: number): string => {
-  const colors = [
-    'color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6',
-    'color-7', 'color-8', 'color-9', 'color-10', 'color-11', 'color-12'
-  ];
-  return colors[index % colors.length];
-};
+const getRandomProjectTagColor = (index: number): string => getRandomColorClass(index);
 
 export default async function Home() {
-  // Single API call to get all data for the main page
-  const homePageData = await portfolioApi.getHomePage();
+  const homePage = await getHomePageCached();
 
-  // Process the data
-  const homePage = homePageData ? processHomePage(homePageData) : null;
-  console.log(homePage)
-  
-  // Extract data from the single API response
-  const featuredProjects = homePage?.highlightedProjects?.projects || [];
-  const techStacks = homePage?.techStacks || [];
+  // ✅ just take everything Strapi returns
+  const featuredProjects = homePage?.HighlightedProjects ?? [];
+  const techStacks = homePage?.techStacks ?? [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
@@ -52,19 +50,19 @@ export default async function Home() {
           </ScrollAnimation>
           <ScrollAnimation delay={0.6}>
             <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
-              {homePage?.introduction || "f"}
+              {homePage?.introduction || 'f'}
             </p>
           </ScrollAnimation>
           <ScrollAnimation delay={0.8}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="/projects" 
+              <Link
+                href="/projects"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
               >
                 View My Work
               </Link>
-              <Link 
-                href="/contact" 
+              <Link
+                href="/contact"
                 className="border border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors"
               >
                 Get In Touch
@@ -86,11 +84,11 @@ export default async function Home() {
             </p>
           </div>
         </ScrollAnimation>
-        
+
         <StaggeredAnimation staggerDelay={0.2}>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {featuredProjects.length > 0 ? (
-              featuredProjects.map((project, index) => (
+              featuredProjects.map((project) => (
                 <StaggeredItem key={project.id}>
                   <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
                     <div className="h-48 bg-gray-700 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
@@ -100,20 +98,23 @@ export default async function Home() {
                           alt={project.thumbnail.alternativeText || project.title}
                           width={400}
                           height={200}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                         />
                       ) : (
                         <span className="text-gray-500">No Image</span>
                       )}
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-2">{project.title}</h3>
-                    <p className="text-gray-400 mb-4 overflow-hidden text-ellipsis" style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                    <p
+                      className="text-gray-400 mb-4 overflow-hidden text-ellipsis"
+                      style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}
+                    >
                       {project.description}
                     </p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {project.tags?.slice(0, 3).map((tag, tagIndex) => (
-                        <span 
-                          key={tag.id} 
+                        <span
+                          key={tag.id}
                           className={`project-tag ${getRandomProjectTagColor(tagIndex)} px-2 py-1 rounded text-sm font-medium`}
                         >
                           {tag.name}
@@ -122,12 +123,22 @@ export default async function Home() {
                     </div>
                     <div className="flex gap-4">
                       {project.demoLink && (
-                        <Link href={project.demoLink} className="text-blue-400 hover:text-blue-300 text-sm" target="_blank" rel="noopener noreferrer">
+                        <Link
+                          href={project.demoLink}
+                          className="text-blue-400 hover:text-blue-300 text-sm"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           View Project →
                         </Link>
                       )}
                       {project.sourceLink && (
-                        <Link href={project.sourceLink} className="text-gray-400 hover:text-gray-300 text-sm" target="_blank" rel="noopener noreferrer">
+                        <Link
+                          href={project.sourceLink}
+                          className="text-gray-400 hover:text-gray-300 text-sm"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           GitHub →
                         </Link>
                       )}
@@ -142,23 +153,8 @@ export default async function Home() {
             )}
           </div>
         </StaggeredAnimation>
-        
-        <ScrollAnimation>
-          <div className="text-center mt-12">
-            <Link 
-              href="/projects" 
-              className="inline-flex items-center text-blue-400 hover:text-blue-300 font-semibold"
-            >
-              View All Projects
-              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </ScrollAnimation>
       </section>
-
-      {/* Skills Preview */}
+     {/* Skills Preview */}
       <section className="container mx-auto px-4 py-16">
         <ScrollAnimation>
           <div className="text-center mb-12">

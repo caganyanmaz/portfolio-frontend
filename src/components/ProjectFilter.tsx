@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import type { Project, Tag } from '@/types/strapi';
-import ScrollAnimation from '@/components/ScrollAnimation';
 import { StaggeredAnimation, StaggeredItem } from '@/components/ScrollAnimation';
 import Link from 'next/link';
 import Image from 'next/image';

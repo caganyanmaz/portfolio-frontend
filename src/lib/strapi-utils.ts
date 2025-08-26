@@ -1,6 +1,6 @@
 // /src/lib/strapi-utils.ts
 import { getStrapiAssetBase } from '@/lib/strapi-config';
-import type { Project, Tag, HomePage, TechStack, SimpleTag } from '@/types/strapi';
+import type { Project, Tag, HomePage, TechStack, SimpleTag, BlogList, BlogDetail } from '@/types/strapi';
 
 // Get base lazily so env is read in the right runtime (server/client)
 const toAbsolute = (url?: string, base?: string) => {
@@ -60,6 +60,7 @@ export const processRelations = (data: any): any => {
 /** Project helpers (tolerant to missing fields) */
 export const processSimpleTag = (tag: any): SimpleTag => ({
   id: tag?.id || 0,
+  documentId: String(tag?.id || ''),
   name: tag?.Name || tag?.name || '',
 });
 
@@ -133,6 +134,7 @@ export const processHomePage = (homePage: any): HomePage | null => {
 
   return {
     id: homePage.id || 1,
+    documentId: homePage.documentId,
     introduction: homePage.Introduction || homePage.introduction || '',
     HighlightedProjects: highlightedProjects,
     projects: processProjects(homePage.Projects || []),
@@ -171,4 +173,97 @@ export const processRichText = (richText: any): string => {
       .join(' ');
   }
   return '';
+};
+
+const normalizeKeysShallow = (obj: any) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  const out: Record<string, any> = { ...obj };
+  for (const [k, v] of Object.entries(obj)) {
+    if (!k) continue;
+    const alias = k.charAt(0).toLowerCase() + k.slice(1); // Title -> title
+    if (!(alias in out)) out[alias] = v;                  // don't overwrite if already present
+  }
+  return out;
+};
+
+
+/** Normalize a single blog-like object (works for v4 {attributes} and v5 flat) */
+const normalizeBlogSource = (raw: any) => {
+  if (!raw) return {};
+
+  // v4: { id, attributes: {...} }
+  if (raw?.attributes) {
+    const { id } = raw;
+    const a = raw.attributes ?? {};
+    // keep documentId if present on either level
+    const documentId = a.documentId ?? raw.documentId;
+    return { id, documentId, ...a };
+  }
+
+  // v5 (already flat)
+  return normalizeKeysShallow(raw);
+};
+
+/** Convert a normalized blog into BlogList fields */
+const makeBlogList = (p: any): BlogList => {
+  // relations
+  const tags = (processRelations(p.tags) || []).map(processSimpleTag);
+
+  // media (support both flat media & strapi media object)
+  const thumb = p.thumbnail || p.Thumbnail;
+  const thumbnail = thumb
+    ? {
+        url: getImageUrl(thumb, 'medium'),
+        alternativeText:
+          thumb?.alternativeText ||
+          p.title ||
+          p.Title ||
+          undefined,
+        name: thumb?.name || undefined,
+      }
+    : undefined;
+
+  return {
+    id: p.id || 0,
+    documentId: p.documentId || p.documentID || p.DocumentId || undefined,
+    title: p.title ?? p.Title ?? '',
+    summary:
+      typeof p.summary === 'string'
+        ? p.summary
+        : typeof p.Summary === 'string'
+        ? p.Summary
+        : processRichText(p.summary || p.Summary) || null,
+    thumbnail,
+    tags,
+    createdAt: p.createdAt || new Date().toISOString(),
+    updatedAt: p.updatedAt || new Date().toISOString(),
+    publishedAt: p.publishedAt ?? null,
+  };
+};
+
+/** Convert a normalized blog into BlogDetail fields (adds `content`) */
+const makeBlogDetail = (p: any): BlogDetail => {
+  const base = makeBlogList(p);
+  // Strapi rich text/dynamic zone field commonly "content" (fallback to "Content")
+  const content = (p.content ?? p.Content ?? []) as unknown as BlogDetail['content'];
+  return { ...base, content };
+};
+
+/** Process a blogs collection response (array) into BlogList[] */
+export const processBlogsList = (blogs: any[]): BlogList[] => {
+  if (!Array.isArray(blogs)) return [];
+  return blogs
+    .map((b) => {
+      if (!b) return null;
+      const src = normalizeBlogSource(b);
+      return makeBlogList(src);
+    })
+    .filter(Boolean) as BlogList[];
+};
+
+/** Process a single blog into BlogDetail (rich content preserved) */
+export const processBlogDetail = (blog: any): BlogDetail | null => {
+  if (!blog) return null;
+  const src = normalizeBlogSource(blog);
+  return makeBlogDetail(src);
 };

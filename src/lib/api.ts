@@ -12,17 +12,21 @@ if (typeof window !== 'undefined') {
 const STRAPI_URL = (process.env.STRAPI_HOST_ADDRESS || 'http://localhost:1337').replace(/\/$/, '');
 const API_TOKEN = process.env.STRAPI_TOKEN;
 
+// Optional: temporarily force v4 format while migrating particular calls
+// export const STRAPI_FORCE_V4_RESP = process.env.STRAPI_FORCE_V4_RESP === '1';
+
 if (process.env.NODE_ENV !== 'production') {
   // eslint-disable-next-line no-console
   console.log('[Strapi] URL:', STRAPI_URL, 'Token?', Boolean(API_TOKEN));
 }
 
-/** --------- AXIOS INSTANCE (Strapi v4) --------- */
+/** --------- AXIOS INSTANCE (Strapi v5) --------- */
 export const strapiApi = axios.create({
   baseURL: `${STRAPI_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
     ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
+    // ...(STRAPI_FORCE_V4_RESP ? { 'Strapi-Response-Format': 'v4' } : {}), // safety switch if ever needed
   },
   timeout: 10_000,
   paramsSerializer: (params) => qs.stringify(params, { encodeValuesOnly: true }),
@@ -33,20 +37,35 @@ export type StrapiQuery = {
   filters?: Record<string, any>;
   populate?: any;
   sort?: string | string[];
-  fields?: string[];
+  fields?: string[]; // v5 still uses "fields" (select) for top-level fields
   pagination?: { page?: number; pageSize?: number; start?: number; limit?: number; withCount?: boolean };
-  publicationState?: 'live' | 'preview';
+  /** v4 -> v5: publicationState was replaced by "status" ("published" | "draft") */
+  status?: 'published' | 'draft';
   locale?: string;
 };
 
-export type WithId<T> = T & { id: number };
+export type WithId<T> = T & { id: number; documentId?: string };
 
+/**
+ * v5 returns flattened attributes + "documentId".
+ * v4 returns { id, attributes: {...} }.
+ * This function accepts both.
+ */
 const flatten = <T>(item: any): WithId<T> => {
   if (!item) return { id: 0 } as WithId<T>;
+
+  // If this is v4-style { id, attributes }
   if (typeof item === 'object' && 'attributes' in item) {
-    return { id: item.id, ...(item.attributes || {}) } as WithId<T>;
+    const id = typeof item.id === 'number' ? item.id : 0;
+    const attrs = (item.attributes ?? {}) as Record<string, unknown>;
+    // Keep documentId if the backend adds it inside attributes or alongside
+    const documentId = (attrs.documentId ?? item.documentId) as string | undefined;
+    return { id, documentId, ...(attrs as any) } as WithId<T>;
   }
-  return item as WithId<T>;
+
+  // v5-style is already flat (and includes id + documentId fields on the root)
+  const id = typeof item.id === 'number' ? item.id : 0;
+  return { id, ...(item as any) } as WithId<T>;
 };
 
 const extractOne = <T>(res: any): WithId<T> | null => {
@@ -77,7 +96,6 @@ function logAxiosError(context: string, err: unknown) {
         authHeader: Boolean(e.config?.headers && 'Authorization' in (e.config!.headers as any)),
       },
     };
-    // Force JSON so Next doesn’t drop undefined props
     // eslint-disable-next-line no-console
     console.error(`[Strapi] ${context} failed -> ${JSON.stringify(payload, null, 2)}`);
   } else {
@@ -121,7 +139,9 @@ export const api = {
     }
   },
 
-  /** POST (create) */
+  /** POST (create) — keep passing what your controllers expect.
+   * For core collection types via REST, Strapi expects { data: {...} }.
+   */
   async post<T>(endpoint: string, data: any, params?: StrapiQuery): Promise<WithId<T> | null> {
     try {
       const res = await strapiApi.post(endpoint, data, { params });

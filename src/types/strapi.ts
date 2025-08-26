@@ -1,76 +1,79 @@
-// Base Strapi types
-export interface StrapiResponse<T> {
-  data: T;
-  meta: {
-    pagination?: {
-      page: number;
-      pageSize: number;
-      pageCount: number;
-      total: number;
-    };
-  };
-}
+// --- JSON ---
+type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = JsonPrimitive | { [k: string]: JsonValue } | JsonValue[];
+export type JsonArray = JsonValue[];
+export type RichBlocks = JsonArray;
 
-export interface StrapiEntity {
+// --- Base / responses ---
+export interface PaginationMeta {
+  page: number; pageSize: number; pageCount: number; total: number;
+}
+export interface CollectionResponse<T> { data: T[]; meta: { pagination?: PaginationMeta } }
+export interface SingleResponse<T> { data: T | null; meta: Record<string, unknown> }
+
+export interface BaseDoc {
   id: number;
-  attributes: any;
+  documentId: string;
   createdAt: string;
   updatedAt: string;
-  publishedAt: string;
+  publishedAt: string | null;
 }
 
-// Portfolio-specific content types
-export interface Project {
+// --- Media (lightweight for cards) ---
+export interface MediaThumb {
+  url: string;
+  alternativeText?: string | null;
+  name?: string | null;
+}
+
+// --- Tags ---
+export interface SimpleTag {
   id: number;
+  documentId: string;
+  name: string;
+}
+
+// --- Project ---
+export interface Project extends BaseDoc {
   title: string;
   description: string;
-  thumbnail?: {
-    url: string;
-    alternativeText?: string;
-  };
+  thumbnail?: MediaThumb | null;
   sourceLink?: string;
   demoLink?: string;
   tags?: SimpleTag[];
-  createdAt: string;
-  updatedAt: string;
 }
 
-export interface Tag {
-  id: number;
-  name: string;
-  projects?: Project[];
-  createdAt: string;
-  updatedAt: string;
+// --- Blog (list vs detail) ---
+export interface BlogBase extends BaseDoc {
+  title: string;
+  summary?: string | null;
+  thumbnail?: MediaThumb | null;
+  tags?: SimpleTag[];
 }
 
-export interface SimpleTag {
-  id: number;
-  name: string;
+export type BlogList = BlogBase;
+
+export interface BlogDetail extends BlogBase {
+  content: RichBlocks;
 }
 
-export interface TechStack {
-  id: number;
-  name: string;
-  tags?: Tag[];
-}
-
-export interface HomePage {
-  id: number;
+// --- Home / TechStack ---
+export interface Tag extends BaseDoc { name: string; projects?: Project[] }
+export interface TechStack extends BaseDoc { name: string; tags?: Tag[] }
+export interface HomePage extends BaseDoc {
   introduction: string;
   HighlightedProjects?: Project[];
   projects?: Project[];
   techStacks?: TechStack[];
-  createdAt: string;
-  updatedAt: string;
 }
 
-
-
-// API response types
-export type ProjectsResponse = StrapiResponse<StrapiEntity[]>;
-export type ProjectResponse = StrapiResponse<StrapiEntity>;
-export type TagsResponse = StrapiResponse<StrapiEntity[]>;
-export type TagResponse = StrapiResponse<StrapiEntity>;
-export type HomePageResponse = StrapiResponse<StrapiEntity>;
-export type TechStackResponse = StrapiResponse<StrapiEntity>;
-export type HighlightedProjectsResponse = StrapiResponse<StrapiEntity>; 
+// --- Responses ---
+export type ProjectsResponse = CollectionResponse<Project>;
+export type ProjectResponse = SingleResponse<Project>;
+export type TagsResponse = CollectionResponse<Tag>;
+export type TagResponse = SingleResponse<Tag>;
+export type HomePageResponse = SingleResponse<HomePage>;
+export type TechStackResponse = CollectionResponse<TechStack>;
+export type HighlightedProjectsResponse = CollectionResponse<Project>;
+export type BlogsListResponse = CollectionResponse<BlogList>;
+export type BlogDetailResponse = SingleResponse<BlogDetail>;

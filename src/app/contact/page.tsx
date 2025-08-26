@@ -182,6 +182,15 @@ export default function Contact() {
                       placeholder="Tell me more about your project or question..."
                     />
                   </div>
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    className="hidden"
+                    onChange={handleChange}
+                  />
+
 
                   {submitStatus === 'success' && (
                     <div className="p-4 bg-green-600/20 border border-green-600 rounded-lg text-green-400">

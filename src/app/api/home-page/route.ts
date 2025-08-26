@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
-import { api } from '@/lib/api'; // server-only client
+import { api } from '@/lib/api';
 
-// Cache: 60s ISR + tag so you can revalidate on demand
 export const revalidate = 60;
 
 export async function GET() {
-  const data = await api.getSingle<any>('/home-page', {
-    // simple & robust
-    populate: { deep: { count: 3 } },
-  });
+  const params = {
+    populate: {
+      HighlightedProjects: {
+       	populate: ['tags', 'Thumbnail'],
+      },
+      TechStacks: {
+        populate: ['tags'],
+      },
+      // add other single-type fields if needed
+    },
+  } as const;
 
-  // Optional: shape/strip any fields before sending to the browser
-  return NextResponse.json({ home: data }, { status: data ? 200 : 404 });
+  const home = await api.getSingle<any>('/home-page', params);
+  return NextResponse.json({ home }, { status: home ? 200 : 404 });
 }
+

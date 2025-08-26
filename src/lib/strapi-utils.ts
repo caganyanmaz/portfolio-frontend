@@ -141,6 +141,7 @@ export const processHomePage = (homePage: any): HomePage | null => {
     techStacks: processTechStacks(homePage.TechStacks || []),
     createdAt: homePage.createdAt || new Date().toISOString(),
     updatedAt: homePage.updatedAt || new Date().toISOString(),
+    publishedAt: homePage.publishedAt || new Date().toISOString(),
   };
 };
 

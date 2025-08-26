@@ -1,8 +1,9 @@
-// --- JSON ---
+import type { BlocksContent } from "@strapi/blocks-react-renderer";
+// --- JSON -
 type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | { [k: string]: JsonValue } | JsonValue[];
 export type JsonArray = JsonValue[];
-export type RichBlocks = JsonArray;
+export type RichBlocks = BlocksContent;
 
 // --- Base / responses ---
 export interface PaginationMeta {

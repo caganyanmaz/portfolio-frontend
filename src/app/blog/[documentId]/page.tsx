@@ -2,18 +2,24 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import BlocksClient from "@/components/BlocksClient";
 import ScrollAnimation from "@/components/ScrollAnimation";
 import { portfolioApi } from "@/lib/portfolio-api";
 import { processBlogDetail } from "@/lib/strapi-utils";
-import type { BlogDetail } from "@/types/strapi";
+import { type BlocksContent } from "@strapi/blocks-react-renderer";
+
 
 type Params = { documentId: string };
+
+
 
 // keep your choice here; if you want ISR, swap to `export const revalidate = 60`
 export const dynamic = "force-dynamic";
 
-export default async function BlogDetailPage({ params }: { params: Params }) {
-  const raw = await portfolioApi.getBlogByDocumentId(params.documentId);
+
+export default async function BlogDetailPage( { params }: { params: Promise<Params> } ) {
+  const { documentId } = await params;       
+  const raw = await portfolioApi.getBlogByDocumentId(documentId);
   const post = processBlogDetail(raw);
   if (!post) return notFound();
 
@@ -24,7 +30,7 @@ export default async function BlogDetailPage({ params }: { params: Params }) {
         <ScrollAnimation>
           <div className="max-w-3xl mx-auto">
             <Link
-              href="/blog"
+              href="/blogs"
               className="inline-flex items-center text-white/80 hover:text-white transition"
             >
               <span aria-hidden className="mr-2">←</span> All posts
@@ -81,35 +87,17 @@ export default async function BlogDetailPage({ params }: { params: Params }) {
       <section className="container mx-auto px-4 pb-20">
         <ScrollAnimation>
           <article className="max-w-3xl mx-auto bg-white/5 backdrop-blur-sm rounded-2xl p-6 md:p-8">
-
-            {/* Typography aligned with index (light on neutral, inverted in dark) */}
-            <div className="prose prose-invert prose-headings:scroll-mt-24 prose-img:rounded-xl max-w-none">
-              {/* TODO: Replace with your real rich-text/blocks renderer */}
-              <BlocksDebug blocks={post.content} />
+            <div className="prose prose-invert max-w-none">
+              <BlocksClient content={post.content as unknown as BlocksContent} />
             </div>
           </article>
 
           {/* Footer nav */}
           <div className="max-w-3xl mx-auto mt-8 flex items-center justify-between text-sm">
-            <Link
-              href="/blog"
-              className="text-white/80 hover:text-white transition"
-            >
-              ← Back to Blog
-            </Link>
-            {/* If you later add prev/next, put them here */}
+            {/* TODO: Add next / prev */}
           </div>
         </ScrollAnimation>
       </section>
     </div>
-  );
-}
-
-/** TEMP: simple renderer — shows your blocks JSON for now. Swap for a real renderer later. */
-function BlocksDebug({ blocks }: { blocks: BlogDetail["content"] }) {
-  return (
-    <pre className="bg-neutral-900/60 text-gray-200 p-4 rounded-xl overflow-auto text-xs leading-relaxed">
-      {JSON.stringify(blocks, null, 2)}
-    </pre>
   );
 }

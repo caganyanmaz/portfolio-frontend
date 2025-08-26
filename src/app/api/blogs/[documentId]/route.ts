@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { api, type StrapiQuery } from "@/lib/api";
 import type { BlogDetail, SimpleTag } from "@/types/strapi";
 
+type Params = { documentId: string };
+
+export const dynamic = "force-dynamic";
+
+
 // Reuse the same helpers from the list route
 function normTags(raw: any): SimpleTag[] {
   const arr = raw?.data ?? raw ?? [];
@@ -42,8 +47,8 @@ function normalizeBlogDetail(item: any): BlogDetail {
 }
 
 // GET /api/blogs/:documentId
-export async function GET(_req: Request, ctx: { params: { documentId: string } }) {
-  const { documentId } = ctx.params;
+export async function GET(_req: Request, ctx: { params: Promise<Params> } ) {
+  const { documentId } = await ctx.params;
 
   const params: StrapiQuery = {
     // Include content on detail
